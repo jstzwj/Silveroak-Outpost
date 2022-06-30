@@ -10,10 +10,13 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.tags.Tag;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.material.Fluid;
+import net.minecraftforge.common.Tags;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraftforge.registries.tags.ITag;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -223,7 +226,8 @@ public class FluidIngredient implements Predicate<FluidStack>
         {
             int amount = GsonHelper.getAsInt(json, "amount", 1000);
             ResourceLocation resourcelocation = new ResourceLocation(GsonHelper.getAsString(json, "tag"));
-            Tag<Fluid> tag = (Tag<Fluid>) FluidTags.getAllTags().getTag(resourcelocation);
+
+            Tag<Fluid> tag = (Tag<Fluid>) ForgeRegistries.FLUIDS.tags().getTag(new TagKey(Registry.FLUID_REGISTRY, resourcelocation)).stream();
             if (tag == null)
             {
                 throw new JsonSyntaxException("Unknown fluid tag '" + resourcelocation + "'");
@@ -299,7 +303,11 @@ public class FluidIngredient implements Predicate<FluidStack>
         public JsonObject serialize()
         {
             JsonObject jsonobject = new JsonObject();
-            jsonobject.addProperty("tag", FluidTags.getAllTags().getId(this.tag).toString());
+            // FIXME: This fluid serialization may be incorrect.
+            if (this.tag.getValues().size() > 0)
+                jsonobject.addProperty("tag", this.tag.getValues().get(0).getRegistryName().toString());
+            else
+                jsonobject.addProperty("tag", "UNKNOWN FLUID");
             jsonobject.addProperty("amount", this.amount);
             return jsonobject;
         }
